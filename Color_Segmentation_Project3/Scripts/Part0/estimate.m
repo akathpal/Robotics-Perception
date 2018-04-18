@@ -1,4 +1,4 @@
 function [mu,sigma]=estimate(Samples)
 mu=mean(Samples)';
-sigma=var(double(Samples))';
+sigma=sqrt(var(double(Samples))');
 end

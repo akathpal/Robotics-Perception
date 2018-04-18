@@ -37,32 +37,29 @@ for i=1:size(I,1)
         r=double(red(i,j));
         g=double(green(i,j));
         y=double(yellow(i,j));
-        prob_map_R(i,j) = normpdf(r,mu_r,sigma_r);
-        prob_map_Y(i,j) = normpdf(y,mu_y,sigma_y);
-        prob_map_G(i,j) = normpdf(g,mu_g,sigma_g);
-        probR(i,j)=exp(-0.5*(double(r)-mu_r)*(double(r)-mu_r)/sigma_r)/(((2*pi)^1/2)*sqrt(sigma_r));
-        probG(i,j)=exp(-0.5*(double(g)-mu_g)*(double(g)-mu_g)/sigma_g)/(((2*pi)^1/2)*sqrt(sigma_g));
-        probY(i,j)=exp(-0.5*(double(y)-mu_y)*(double(y)-mu_y)/sigma_y)/(((2*pi)^1/2)*sqrt(sigma_y));
+        
+        %% Gaussian distribution function
+        prob_map_R(i,j)=normpdf(r,mu_r,sigma_r);
+        prob_map_G(i,j)=normpdf(g,mu_g,sigma_g);
+        prob_map_Y(i,j)=normpdf(y,mu_y,sigma_y);
     end
 end
 
 figure(1);
 imshow(I1); hold on;
 
-mask1 = probR > 3*std2(probR);
-mask2 = probG < 2*std2(probG);
-mask3 = probY < 3*std2(probY);
+mask1 = prob_map_R > 3*std2(prob_map_R);
+mask2 = prob_map_G < 2*std2(prob_map_G);
+mask3 = prob_map_Y < 3*std2(prob_map_Y);
 maskR = mask1 & mask2 & mask3;
 se = strel('disk',10);
 maskR = imdilate(maskR,se);
+maskR = imclose(maskR,strel('disk',5));
 maskR2=zeros(size(maskR));
 maskR=bwareafilt(maskR,[200,3000]);
 
-%imshow(maskR);
-propsR=regionprops(maskR);
-maskR=imfill(maskR,'holes');
-ccR = bwconncomp(maskR);
 
+ccR = bwconncomp(maskR);
 S = regionprops(ccR,'Centroid');
 for i=1:size(S,1)
     if ~(S(i).Centroid(1,2)>150 && S(i).Centroid(1,2)<400 && S(i).Centroid(1,1)>40 && S(i).Centroid(1,1)<600)
@@ -78,8 +75,8 @@ maskR2(ccR.PixelIdxList{idxR}) = 1;
 plot(bwR{1}(:,2),bwR{1}(:,1),'r', 'LineWidth', 2);
 end
 
-mask1 = probY >  2*std2(probY); 
-mask2 = probG > 2*std2(probG);
+mask1 = prob_map_Y >  2*std2(prob_map_Y); 
+mask2 = prob_map_G > 2*std2(prob_map_G);
 maskY = mask1 &mask2;
 maskY2=zeros(size(maskY));
 
@@ -87,8 +84,7 @@ maskY2=zeros(size(maskY));
 % maskY = imdilate(maskY,se);
 maskY=bwareafilt(maskY,[300,4500]);
 %imshow(maskY);
-propsY=regionprops(maskY);
-maskY=imfill(maskY,'holes');
+
 ccY = bwconncomp(maskY);
 
 S = regionprops(ccY,'Centroid');
@@ -107,8 +103,8 @@ plot(bwY{1}(:,2),bwY{1}(:,1),'y', 'LineWidth', 2);
 end
 
 if n<23
-mask1 = probG > 2*std2(probG);
-mask2 = probR < 2*std2(probR);
+mask1 = prob_map_G > 2*std2(prob_map_G);
+mask2 = prob_map_R < 2*std2(prob_map_R);
 maskG = mask1 & ~maskY & ~maskR;
 
 se = strel('disk',10);
@@ -116,8 +112,7 @@ maskG = imdilate(maskG,se);
 maskG=bwareafilt(maskG,[500,1500]);
 %imshow(maskG);
 maskG2=zeros(size(maskG));
-propsG=regionprops(maskG);
-maskG=imfill(maskG,'holes');
+
 ccG = bwconncomp(maskG);
 S = regionprops(ccG,'Centroid');
 for i=1:size(S,1)
