@@ -1,138 +1,131 @@
+%% Author 
+%  Abhishek Kathpal
+%  UID: 114852373
+%  Perception for Autonomous Robots
+
+%% Initialization
 clc;
 clear;
 close all;
 
 test_data = @(i) fullfile(sprintf('../../Images/TestSet/Frames/%03d.jpg',i));
-load ColorSamples.mat
-[mu_r,sigma_r]=estimate(SamplesR(:,1));
-[mu_y,sigma_y]=estimate((SamplesY(:,1)+SamplesY(:,2))./2);
-[mu_g,sigma_g]=estimate(SamplesG(:,2));
-video=VideoWriter('test');
+load RGYSamples.mat
+
+%% Estimating mean and sigma 1D gaussian
+%--For Yellow buoy - average of red and green channel is used
+%--For red buoy - red channel is used
+%--For green buoy - green channel is used
+[mu_r,sigma_r]=model_parameters(red_samples(:,1));
+[mu_y,sigma_y]=model_parameters((yellow_samples(:,1)+yellow_samples(:,2))./2);
+[mu_g,sigma_g]=model_parameters(green_samples(:,2));
+cd ../../Output/Part0;
+video=VideoWriter('test1');
+video.FrameRate = 5;
+cd ../../Scripts/Part0;
+hold off;
 open(video);
-for n = 1:180
 
-I1=imread(test_data(n));
-%I=I1;
-I=imgaussfilt(imadjust(I1,[0.6 1],[]),5);
-%I=rgb2hsv(I);
+for n = 1:170
 
-%imshow(I);
+I_original=imread(test_data(n));
+I=imgaussfilt(imadjust(I_original,[0.6 1],[]),5);
+
+red=double(I(:,:,1));
+green=double(I(:,:,2));
+yellow = double((I(:,:,1)+I(:,:,2))./2);
+
+%% Gaussian distribution function
+prob_map_R=gaussian_1D(red,mu_r,sigma_r);
+prob_map_G=gaussian_1D(green,mu_g,sigma_g);
+prob_map_Y=gaussian_1D(yellow,mu_y,sigma_y);
+
+prob_map_R = prob_map_R./max(prob_map_R(:));
+prob_map_G = prob_map_G./max(prob_map_G(:));
+prob_map_Y = prob_map_Y./max(prob_map_Y(:));
 
 
-maskR=zeros(size(I,1),size(I,2));
-maskY=zeros(size(I,1),size(I,2));
-maskG=zeros(size(I,1),size(I,2));
-
-prob_map_R=maskR;
-prob_map_Y=maskY;
-prob_map_G=maskG;
-
-%%
-red=I(:,:,1);
-green=I(:,:,2);
-blue=I(:,:,3);
-yellow = (red+green)./2;
-for i=1:size(I,1)
-    for j=1:size(I,2)
-        r=double(red(i,j));
-        g=double(green(i,j));
-        y=double(yellow(i,j));
-        
-        %% Gaussian distribution function
-        prob_map_R(i,j)=normpdf(r,mu_r,sigma_r);
-        prob_map_G(i,j)=normpdf(g,mu_g,sigma_g);
-        prob_map_Y(i,j)=normpdf(y,mu_y,sigma_y);
-    end
-end
 
 figure(1);
-imshow(I1); hold on;
+imshow(I_original); hold on;
 
-mask1 = prob_map_R > 3*std2(prob_map_R);
-mask2 = prob_map_G < 2*std2(prob_map_G);
-mask3 = prob_map_Y < 3*std2(prob_map_Y);
-maskR = mask1 & mask2 & mask3;
-se = strel('disk',10);
-maskR = imdilate(maskR,se);
-maskR = imclose(maskR,strel('disk',5));
-maskR2=zeros(size(maskR));
-maskR=bwareafilt(maskR,[200,3000]);
+red_mask = prob_map_R > 0.95;
+
+se = strel('disk',5);
+red_mask = imdilate(red_mask,se);
+red_mask = imclose(red_mask,strel('disk',5));
+red_mask2=zeros(size(red_mask));
+red_mask=bwareafilt(red_mask,[200,3000]);
 
 
-ccR = bwconncomp(maskR);
-S = regionprops(ccR,'Centroid');
+red_comp = bwconncomp(red_mask);
+S = regionprops(red_comp,'Centroid');
 for i=1:size(S,1)
     if ~(S(i).Centroid(1,2)>150 && S(i).Centroid(1,2)<400 && S(i).Centroid(1,1)>40 && S(i).Centroid(1,1)<600)
-        ccR.PixelIdxList{1,i} = [];
-        ccR.NumObjects = ccR.NumObjects -1;
+        red_comp.PixelIdxList{1,i} = [];
+        red_comp.NumObjects = red_comp.NumObjects -1;
     end
 end
-if ccR.NumObjects>0
-numPixelsR = cellfun(@numel,ccR.PixelIdxList);
-[biggestR,idxR] = max(numPixelsR);
-maskR2(ccR.PixelIdxList{idxR}) = 1;
-[bwR,~] = bwboundaries(maskR2,'holes');
-plot(bwR{1}(:,2),bwR{1}(:,1),'r', 'LineWidth', 2);
+
+if red_comp.NumObjects>0
+    numPixelsR = cellfun(@numel,red_comp.PixelIdxList);
+    [biggestR,idxR] = max(numPixelsR);
+    red_mask2(red_comp.PixelIdxList{idxR}) = 1;
+    [red_boundaries,~] = bwboundaries(red_mask2,'holes');
+    plot(red_boundaries{1}(:,2),red_boundaries{1}(:,1),'r', 'LineWidth', 2);
 end
 
-mask1 = prob_map_Y >  2*std2(prob_map_Y); 
-mask2 = prob_map_G > 2*std2(prob_map_G);
-maskY = mask1 &mask2;
-maskY2=zeros(size(maskY));
+yellow_mask = prob_map_Y >  0.95; 
+yellow_mask2=zeros(size(yellow_mask));
+yellow_mask=bwareafilt(yellow_mask,[200,3000]);
+%imshow(yellow_mask);
 
-% se = strel('disk',5);
-% maskY = imdilate(maskY,se);
-maskY=bwareafilt(maskY,[300,4500]);
-%imshow(maskY);
+yellow_comp = bwconncomp(yellow_mask);
 
-ccY = bwconncomp(maskY);
-
-S = regionprops(ccY,'Centroid');
+S = regionprops(yellow_comp,'Centroid');
 for i=1:size(S,1)
     if ~(S(i).Centroid(1,2)>150 && S(i).Centroid(1,2)<400 && S(i).Centroid(1,1)>40 && S(i).Centroid(1,1)<600)
-        ccY.PixelIdxList{1,i} = [];
-        ccY.NumObjects = ccY.NumObjects -1;
+        yellow_comp.PixelIdxList{1,i} = [];
+        yellow_comp.NumObjects = yellow_comp.NumObjects -1;
     end
 end
-if ccY.NumObjects>0
-numPixelsY = cellfun(@numel,ccY.PixelIdxList);
+if yellow_comp.NumObjects>0
+numPixelsY = cellfun(@numel,yellow_comp.PixelIdxList);
 [biggestY,idxY] = max(numPixelsY);
-maskY2(ccY.PixelIdxList{idxY}) = 1;
-[bwY,~] = bwboundaries(maskY2,'holes');
-plot(bwY{1}(:,2),bwY{1}(:,1),'y', 'LineWidth', 2);
+yellow_mask2(yellow_comp.PixelIdxList{idxY}) = 1;
+[yellow_boundaries,~] = bwboundaries(yellow_mask2,'holes');
+plot(yellow_boundaries{1}(:,2),yellow_boundaries{1}(:,1),'y', 'LineWidth', 2);
 end
 
-if n<23
-mask1 = prob_map_G > 2*std2(prob_map_G);
-mask2 = prob_map_R < 2*std2(prob_map_R);
-maskG = mask1 & ~maskY & ~maskR;
+if n<20
 
-se = strel('disk',10);
-maskG = imdilate(maskG,se);
-maskG=bwareafilt(maskG,[500,1500]);
-%imshow(maskG);
-maskG2=zeros(size(maskG));
 
-ccG = bwconncomp(maskG);
-S = regionprops(ccG,'Centroid');
+green_mask = prob_map_G > 0.7;
+se = strel('disk',5);
+green_mask = imdilate(green_mask,se);
+green_mask=bwareafilt(green_mask,[500,800]);
+%imshow(green_mask);
+green_mask2=zeros(size(green_mask));
+
+green_comp = bwconncomp(green_mask);
+S = regionprops(green_comp,'Centroid');
 for i=1:size(S,1)
     if ~(S(i).Centroid(1,2)>150 && S(i).Centroid(1,2)<400 && S(i).Centroid(1,1)>40 && S(i).Centroid(1,1)<600)
-        ccG.PixelIdxList{1,i} = [];
-        ccG.NumObjects = ccG.NumObjects -1;
+        green_comp.PixelIdxList{1,i} = [];
+        green_comp.NumObjects = green_comp.NumObjects -1;
     end
 end
-if ccG.NumObjects>0
-numPixelsG = cellfun(@numel,ccG.PixelIdxList);
+if green_comp.NumObjects>0
+numPixelsG = cellfun(@numel,green_comp.PixelIdxList);
 [biggestG,idxG] = max(numPixelsG);
-maskG2(ccG.PixelIdxList{idxG}) = 1;
-[bwG,~] = bwboundaries(maskG2,'holes');
-plot(bwG{1}(:,2),bwG{1}(:,1),'g', 'LineWidth', 2);
+green_mask2(green_comp.PixelIdxList{idxG}) = 1;
+[green_boundaries,~] = bwboundaries(green_mask2,'holes');
+plot(green_boundaries{1}(:,2),green_boundaries{1}(:,1),'g', 'LineWidth', 2);
 end
 end
 
 
-writeVideo(video,getframe);
+writeVideo(video,getframe(gcf));
 pause(0.01);
-hold off;
+
 end
 close(video);
