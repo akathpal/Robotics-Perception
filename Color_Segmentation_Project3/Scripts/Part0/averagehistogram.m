@@ -154,13 +154,4 @@ hold off
 pause(0.1)
 hgexport(gcf, fullfile(outputfolder, 'G_hist.jpg'), hgexport('factorystyle'), 'Format', 'jpeg');
 
-% figure,
-% scatter3(red_samples(:,1),red_samples(:,2),red_samples(:,3),'.');
-% saveas(gcf,folder('R_distribution'));
-% figure,
-% scatter3(yellow_samples(:,1),yellow_samples(:,2),yellow_samples(:,3),'.');
-% saveas(gcf,folder('Y_distribution'));
-% figure,
-% scatter3(green_samples(:,1),green_samples(:,2),green_samples(:,3),'.');
-% saveas(gcf,folder('G_distribution'));
 save('RGYSamples.mat','red_samples','yellow_samples','green_samples');
