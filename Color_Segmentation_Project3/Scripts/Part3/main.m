@@ -3,6 +3,8 @@ clear;
 close all;
 
 test_data = @(i) fullfile(sprintf('../../Images/TestSet/Frames/%03d.jpg',i));
+binary_data = @(i) fullfile(sprintf('../../Output/Part3/Binary/%03d.jpg',i));
+color_data = @(i) fullfile(sprintf('../../Output/Part3/Color_Frames/%03d.jpg',i));
 load RGYSamples.mat
 
 rN=3;
@@ -11,21 +13,21 @@ gN=4;
 
 
 %% Matlab Implementation
-% GMM_red_buoy = estimate(red_samples,5);
-% GMM_yellow_buoy = estimate(yellow_samples,5);
-% GMM_green_buoy = estimate(green_samples,5);
-% mu_r = GMM_red_buoy.mu;
-% mu_y = GMM_yellow_buoy.mu;
-% mu_g = GMM_green_buoy.mu;
-% sigma_r = GMM_red_buoy.Sigma;
-% sigma_y = GMM_yellow_buoy.Sigma;
-% sigma_g = GMM_green_buoy.Sigma;
+GMM_red_buoy = estimate(red_samples,5);
+GMM_yellow_buoy = estimate(yellow_samples,5);
+GMM_green_buoy = estimate(green_samples,5);
+mu_r = GMM_red_buoy.mu;
+mu_y = GMM_yellow_buoy.mu;
+mu_g = GMM_green_buoy.mu;
+sigma_r = GMM_red_buoy.Sigma;
+sigma_y = GMM_yellow_buoy.Sigma;
+sigma_g = GMM_green_buoy.Sigma;
 
 %% My implementation
 
-[mu_r,sigma_r] = em_implementation(red_samples,rN,3);
-[mu_g,sigma_g] = em_implementation(green_samples,gN,3);
-[mu_y,sigma_y] = em_implementation(yellow_samples,yN,3);
+% [mu_r,sigma_r] = em_implementation(red_samples,rN,3);
+% [mu_g,sigma_g] = em_implementation(green_samples,gN,3);
+% [mu_y,sigma_y] = em_implementation(yellow_samples,yN,3);
 
 %% Making Video Object with specified frame rate 
 video=VideoWriter('rgb_my_gmm_3r5y4g_3d');
@@ -168,7 +170,14 @@ for n = 5:150
 %             plot(green_boundaries{1}(:,2),green_boundaries{1}(:,1),'g', 'LineWidth', 2);
         end
     end
-
+    if n<10
+        mask = yellow_mask2 | green_mask2 | red_mask2;
+    else
+        mask = yellow_mask2 | red_mask2;
+    end
+    imwrite(mask,binary_data(n));
+    %imwrite(getframe,color_data(n));
+    
     open(video);
     writeVideo(video,getframe(gcf));
     pause(0.01);
