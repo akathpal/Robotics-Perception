@@ -41,7 +41,7 @@ No. of yellow objects are = 3
 No. of white objects are = 1
 No. of transparent objects are = 1
 
-![Output](/Output/FinalOutput.jpg)
+![Output](/PinsSegmentation/Output/FinalOutput.jpg)
 
 ## References
 Matlab Help Documentation
