@@ -11,9 +11,12 @@ This repository consists of all the projects associated with course ENPM673 Perc
 
 ## Dependencies
 
-- MATLAB R2018b or higher
--- Image Processing Toolbox 
--- Computer Vision Toolbox
+- MATLAB R2018b or higher <br />
+-- Image Processing Toolbox <br />
+-- Computer Vision Toolbox <br />
+
+
+
 
 
 
